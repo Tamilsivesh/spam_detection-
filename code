@@ -1,0 +1,62 @@
+import streamlit as st
+import pandas as pd
+from sklearn.svm import SVC
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+
+@st.cache
+def load_data():
+    # Load data
+    data = pd.read_csv(r"C:\Users\Tamil\Downloads\sms_spam_detection-master\sms_spam_detection-master\spam.csv",encoding='latin-1')
+
+    # Data preprocessing
+    data = data.drop(['Unnamed: 2', 'Unnamed: 3', 'Unnamed: 4'], axis=1)
+    data = data.rename(columns={'v1': 'label', 'v2': 'message'})
+    data['length'] = data['message'].apply(len)
+    data['label_num'] = data.label.map({'ham': 0, 'spam': 1})
+
+    return data
+
+def train_model(data):
+    x = data.message
+    y = data.label_num
+    x_train, _, y_train, _ = train_test_split(x, y, random_state=11)
+    vect = CountVectorizer()
+    X_train = vect.fit_transform(x_train)
+
+    # Train classifier
+    classifier = SVC(kernel='linear')
+    classifier.fit(X_train, y_train)
+
+    return classifier, vect
+
+def predict_spam_or_ham(classifier, vectorizer, message):
+    X = vectorizer.transform([message])
+    prediction = classifier.predict(X)[0]
+    if prediction == 1:
+        return "Spam"
+    else:
+        return "Ham"
+
+def main():
+    # Streamlit UI
+    st.title("Spam Detection App")
+    st.subheader("SMS Spam Detection using Machine Learning")
+
+    # Load data and train model
+    data = load_data()
+    classifier, vectorizer = train_model(data)
+
+    # User input
+    message = st.text_input("Enter a message:")
+   
+    if st.button("Predict"):
+        if message:
+            result = predict_spam_or_ham(classifier, vectorizer, message)
+            st.write("Prediction:", result)
+        else:
+            st.write("Please enter a message.")
+
+if __name__ == '__main__':
+    main()
